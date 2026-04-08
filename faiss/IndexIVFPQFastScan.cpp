@@ -8,6 +8,7 @@
 #include <faiss/IndexIVFPQFastScan.h>
 
 #include <array>
+#include <algorithm>
 #include <cstdio>
 
 #include <memory>
@@ -318,6 +319,8 @@ struct IVFPQFastScanScanner : InvertedListScanner {
     AlignedTable<uint8_t> dis_tables;
     AlignedTable<uint16_t> biases;
     std::vector<float> residual;
+    mutable std::vector<float> curr_dists;
+    mutable std::vector<idx_t> curr_labels;
     std::array<float, 2> normalizers{};
     const float* xi = nullptr;
 
@@ -344,9 +347,11 @@ struct IVFPQFastScanScanner : InvertedListScanner {
         FastScanDistancePostProcessing empty_context{};
         index.compute_LUT_uint8(
                 1, xi, cq, dis_tables, biases, &normalizers[0], empty_context);
-        // used in distance_to_code
-        index.quantizer->compute_residual(
-                this->xi, residual.data(), this->list_no);
+        // used in distance_to_code only for residual encoding
+        if (index.by_residual) {
+            index.quantizer->compute_residual(
+                    this->xi, residual.data(), this->list_no);
+        }
     }
 
     float distance_to_code(const uint8_t* code) const override {
@@ -391,8 +396,10 @@ struct IVFPQFastScanScanner : InvertedListScanner {
             size_t k) const override {
         // initialize the current iteration heap to the worst possible value of
         // the prior loop
-        std::vector<float> curr_dists(k, distances[0]);
-        std::vector<idx_t> curr_labels(k, labels[0]);
+        curr_dists.resize(k);
+        curr_labels.resize(k);
+        std::fill(curr_dists.begin(), curr_dists.end(), distances[0]);
+        std::fill(curr_labels.begin(), curr_labels.end(), labels[0]);
 
         auto scanner = index.make_knn_scanner(
                 !keep_max, nq, k, curr_dists.data(), curr_labels.data(), sel);

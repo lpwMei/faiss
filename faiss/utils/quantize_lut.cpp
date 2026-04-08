@@ -24,6 +24,18 @@ namespace quantize_lut {
 
 namespace {
 
+std::vector<float>& get_tls_float_buffer0(size_t n) {
+    thread_local std::vector<float> buffer;
+    buffer.resize(n);
+    return buffer;
+}
+
+std::vector<float>& get_tls_float_buffer1(size_t n) {
+    thread_local std::vector<float> buffer;
+    buffer.resize(n);
+    return buffer;
+}
+
 // there can be NaNs in tables, they should be ignored
 float tab_min(const float* tab, size_t n) {
     float min = HUGE_VAL;
@@ -144,7 +156,7 @@ void quantize_LUT_and_bias(
     float a, b;
     if (!bias) {
         FAISS_THROW_IF_NOT(!lut_is_3d);
-        std::vector<float> mins(M);
+        auto& mins = get_tls_float_buffer0(M);
         float max_span_LUT = -HUGE_VAL, max_span_dis = 0;
         b = 0;
         for (size_t i = 0; i < M; i++) {
@@ -161,7 +173,7 @@ void quantize_LUT_and_bias(
         }
         memset(LUTq + M * ksub, 0, ksub * (M2 - M));
     } else if (!lut_is_3d) {
-        std::vector<float> mins(M);
+        auto& mins = get_tls_float_buffer0(M);
         float max_span_LUT = -HUGE_VAL, max_span_dis;
         float bias_min = tab_min(bias, nprobe);
         float bias_max = tab_max(bias, nprobe);
@@ -185,8 +197,8 @@ void quantize_LUT_and_bias(
 
     } else if (biasq) {
         // LUT is 3D
-        std::vector<float> mins(nprobe * M);
-        std::vector<float> bias2(nprobe);
+        auto& mins = get_tls_float_buffer0(nprobe * M);
+        auto& bias2 = get_tls_float_buffer1(nprobe);
         float bias_min = tab_min(bias, nprobe);
         float max_span_LUT = -HUGE_VAL, max_span_dis = -HUGE_VAL;
 
