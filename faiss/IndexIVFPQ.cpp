@@ -767,6 +767,7 @@ struct QueryTables {
 
 template <class C, bool use_sel>
 struct WrappedSearchResult {
+    static constexpr bool kUseSel = use_sel;
     ResultHandler& res;
     size_t nup = 0;
     idx_t list_no;
@@ -860,6 +861,42 @@ struct IVFPQScannerT : QueryTables {
             size_t ncode,
             const uint8_t* codes,
             SearchResultType& res) const {
+        if constexpr (!SearchResultType::kUseSel) {
+            size_t j = 0;
+            for (; j + 3 < ncode; j += 4) {
+                float distance_0 = 0;
+                float distance_1 = 0;
+                float distance_2 = 0;
+                float distance_3 = 0;
+                PQCodeDist::distance_four_codes(
+                        pq.M,
+                        pq.nbits,
+                        sim_table,
+                        codes + (j + 0) * pq.code_size,
+                        codes + (j + 1) * pq.code_size,
+                        codes + (j + 2) * pq.code_size,
+                        codes + (j + 3) * pq.code_size,
+                        distance_0,
+                        distance_1,
+                        distance_2,
+                        distance_3);
+
+                res.add(j + 0, dis0 + distance_0);
+                res.add(j + 1, dis0 + distance_1);
+                res.add(j + 2, dis0 + distance_2);
+                res.add(j + 3, dis0 + distance_3);
+            }
+            for (; j < ncode; j++) {
+                float distance_0 = PQCodeDist::distance_single_code(
+                        pq.M,
+                        pq.nbits,
+                        sim_table,
+                        codes + j * pq.code_size);
+                res.add(j, dis0 + distance_0);
+            }
+            return;
+        }
+
         int counter = 0;
 
         size_t saved_j[4] = {0, 0, 0, 0};

@@ -73,7 +73,18 @@ struct PQCodeDistanceScalar {
         const float* tab = sim_table;
         float result = 0;
 
-        for (size_t m = 0; m < M; m++) {
+        size_t m = 0;
+        for (; m + 3 < M; m += 4) {
+            result += tab[decoder.decode()];
+            tab += ksub;
+            result += tab[decoder.decode()];
+            tab += ksub;
+            result += tab[decoder.decode()];
+            tab += ksub;
+            result += tab[decoder.decode()];
+            tab += ksub;
+        }
+        for (; m < M; m++) {
             result += tab[decoder.decode()];
             tab += ksub;
         }
@@ -105,7 +116,33 @@ struct PQCodeDistanceScalar {
         result2 = 0;
         result3 = 0;
 
-        for (size_t m = 0; m < M; m++) {
+        size_t m = 0;
+        for (; m + 3 < M; m += 4) {
+            result0 += tab[decoder0.decode()];
+            result1 += tab[decoder1.decode()];
+            result2 += tab[decoder2.decode()];
+            result3 += tab[decoder3.decode()];
+            tab += ksub;
+
+            result0 += tab[decoder0.decode()];
+            result1 += tab[decoder1.decode()];
+            result2 += tab[decoder2.decode()];
+            result3 += tab[decoder3.decode()];
+            tab += ksub;
+
+            result0 += tab[decoder0.decode()];
+            result1 += tab[decoder1.decode()];
+            result2 += tab[decoder2.decode()];
+            result3 += tab[decoder3.decode()];
+            tab += ksub;
+
+            result0 += tab[decoder0.decode()];
+            result1 += tab[decoder1.decode()];
+            result2 += tab[decoder2.decode()];
+            result3 += tab[decoder3.decode()];
+            tab += ksub;
+        }
+        for (; m < M; m++) {
             result0 += tab[decoder0.decode()];
             result1 += tab[decoder1.decode()];
             result2 += tab[decoder2.decode()];
